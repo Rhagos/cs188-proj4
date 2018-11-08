@@ -104,10 +104,13 @@ class DiscreteDistribution(dict):
         normed = self.copy()
         normed.normalize()
         rng = random.random()
+        last_key = None
         for i in normed.keys():
             rng -= normed.__getitem__(i)
             if rng <= 0:
                 return i
+            last_key = i
+        return last_key
         
 
 class InferenceModule:
@@ -338,9 +341,9 @@ class ParticleFilter(InferenceModule):
         self.particles for the list of particles.
         """
         self.particles = []
-        "*** YOUR CODE HERE ***"
-        raiseNotDefined()
-
+        for i in range(self.numParticles):
+            self.particles.append(self.legalPositions[i%len(self.legalPositions)])
+            
     def observeUpdate(self, observation, gameState):
         """
         Update beliefs based on the distance observation and Pacman's position.
@@ -353,8 +356,19 @@ class ParticleFilter(InferenceModule):
         be reinitialized by calling initializeUniformly. The total method of
         the DiscreteDistribution may be useful.
         """
-        "*** YOUR CODE HERE ***"
-        raiseNotDefined()
+        beliefs = DiscreteDistribution()
+        new_particles = []
+        for gPos in self.particles:
+            beliefs[gPos] += self.getObservationProb(observation, gameState.getPacmanPosition(), gPos, self.getJailPosition())
+        if beliefs.total() != 0:
+            for i in range(self.numParticles):
+                sample = beliefs.sample()
+                if sample is None:
+                    print(beliefs.keys())
+                new_particles.append(sample)
+            self.particles = new_particles
+        else:
+            self.initializeUniformly(gameState)
 
     def elapseTime(self, gameState):
         """
@@ -372,8 +386,12 @@ class ParticleFilter(InferenceModule):
         
         This function should return a normalized distribution.
         """
-        "*** YOUR CODE HERE ***"
-        raiseNotDefined()
+        beliefs = DiscreteDistribution()
+        for i in self.particles:
+            beliefs[i] += 1/self.numParticles
+        beliefs.normalize()
+        return beliefs
+
 
 
 class JointParticleFilter(ParticleFilter):
